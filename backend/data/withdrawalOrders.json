@@ -1,0 +1,20 @@
+{
+  "withdrawalOrders": [
+    {
+      "id": "WO-1761149471858",
+      "orderNumber": "WD2025001",
+      "department": "10",
+      "purpose": "10000",
+      "requestedBy": "admin",
+      "createdAt": "2025-10-22T16:11:11.858Z",
+      "status": "pending",
+      "items": [
+        {
+          "productId": "1761143141687",
+          "quantity": 1
+        }
+      ],
+      "notes": null
+    }
+  ]
+}
