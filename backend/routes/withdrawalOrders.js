@@ -4,6 +4,16 @@ const path = require('path')
 
 const router = express.Router()
 const DATA_FILE = path.join(__dirname, '..', 'data', 'withdrawalOrders.json')
+const PRODUCTS_FILE = path.join(__dirname, '..', 'data', 'products.json')
+
+function readProducts() {
+  try {
+    const data = fs.readFileSync(PRODUCTS_FILE, 'utf8')
+    return JSON.parse(data)
+  } catch (e) {
+    return []
+  }
+}
 
 // Helper functions
 function readWithdrawalOrders() {
@@ -34,6 +44,7 @@ router.get('/', (req, res) => {
 router.post('/', (req, res) => {
   try {
     const orders = readWithdrawalOrders()
+    const products = readProducts()
     const body = req.body
 
     const newOrder = {
@@ -44,17 +55,48 @@ router.post('/', (req, res) => {
       requestedBy: body.requestedBy,
       createdAt: new Date().toISOString(),
       status: 'pending',
-      items: body.items,
+      items: body.items.map(item => {
+        const product = products.find(p => p.id === item.productId)
+        return {
+          productId: item.productId,
+          productName: product ? product.name : 'Unknown Product',
+          quantity: parseInt(item.quantity)
+        }
+      }),
       notes: body.notes || null
     }
 
     orders.withdrawalOrders.push(newOrder)
     writeWithdrawalOrders(orders)
-    
     res.status(201).json(newOrder)
   } catch (error) {
     console.error('Error creating order:', error)
     res.status(500).json({ error: 'Failed to create withdrawal order' })
+  }
+})
+
+// Confirm withdrawal order
+router.post('/:id/confirm', (req, res) => {
+  try {
+    const orders = readWithdrawalOrders()
+    const orderIndex = orders.withdrawalOrders.findIndex(o => o.id === req.params.id)
+
+    if (orderIndex === -1) {
+      return res.status(404).json({ error: 'Order not found' })
+    }
+
+    orders.withdrawalOrders[orderIndex] = {
+      ...orders.withdrawalOrders[orderIndex],
+      status: 'confirmed',
+      confirmedBy: req.body.confirmedBy,
+      confirmedAt: new Date().toISOString()
+    }
+
+    writeWithdrawalOrders(orders)
+    res.json(orders.withdrawalOrders[orderIndex])
+  } catch (error) {
+    console.error('Error confirming order:', error)
+    res.status(500).json({ error: 'Failed to confirm withdrawal order' })
   }
 })
 
